@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qwen 2.5 Coder 14B · Local AI Developer</title>
+    <!-- Highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark-dimmed.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- Marked.js for markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --bg-body: #0d1117;
+            --bg-sidebar: #161b22;
+            --bg-card: #21262d;
+            --border: #30363d;
+            --accent: #58a6ff;
+            --accent-hover: #1f6feb;
+            --text-main: #f0f6fc;
+            --text-muted: #8b949e;
+            --code-bg: #161b22;
+            --success: #3fb950;
+            --danger: #f85149;
+            --warning: #d29922;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+            background: var(--bg-body);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        #sidebar {
+            width: 280px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 20px 16px;
+            gap: 16px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent);
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .brand-badge {
+            font-size: 11px;
+            background: #1f6feb33;
+            color: #58a6ff;
+            padding: 2px 7px;
+            border-radius: 12px;
+            border: 1px solid #1f6feb80;
+        }
+
+        .btn-new-chat {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background 0.15s;
+        }
+        .btn-new-chat:hover { background: #2ea043; }
+
+        .sidebar-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .sidebar-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        .model-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 13px;
+        }
+        .model-name {
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            display: inline-block;
+        }
+        .model-meta {
+            color: var(--text-muted);
+            font-size: 11px;
+            margin-top: 4px;
+            line-height: 1.4;
+        }
+
+        .params-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 13px;
+        }
+        .param-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .param-row label { color: var(--text-muted); font-size: 12px; }
+        .param-row span { font-family: monospace; font-size: 12px; color: var(--accent); }
+        .param-slider {
+            width: 100%;
+            margin-top: 4px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            font-size: 11px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            padding-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .sidebar-footer a { color: var(--accent); text-decoration: none; }
+        .sidebar-footer a:hover { text-decoration: underline; }
+
+        /* Main Area */
+        #main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--bg-body);
+        }
+
+        header {
+            padding: 12px 24px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-sidebar);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .header-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .model-select {
+            background: var(--bg-card);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        /* Messages */
+        #chat-history {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .welcome-box {
+            max-width: 760px;
+            margin: 40px auto 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 28px;
+            text-align: center;
+        }
+        .welcome-box h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: var(--text-main);
+        }
+        .welcome-box p {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        .prompts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            text-align: left;
+        }
+        .prompt-card {
+            background: var(--bg-body);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s;
+            color: var(--text-main);
+        }
+        .prompt-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-1px);
+        }
+        .prompt-card .p-title { font-weight: 600; color: var(--accent); margin-bottom: 4px; }
+        .prompt-card .p-desc { color: var(--text-muted); font-size: 12px; }
+
+        .message-row {
+            display: flex;
+            gap: 14px;
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        .message-row.user { justify-content: flex-end; }
+        .message-row.user .msg-bubble {
+            background: #1f6feb;
+            color: white;
+            border-radius: 14px 14px 2px 14px;
+            padding: 12px 18px;
+            max-width: 80%;
+            white-space: pre-wrap;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+        .message-row.assistant .avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: #238636;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .message-row.assistant .msg-bubble {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 2px 14px 14px 14px;
+            padding: 18px 22px;
+            flex: 1;
+            font-size: 15px;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+
+        /* Markdown styling inside assistant bubble */
+        .msg-bubble h1, .msg-bubble h2, .msg-bubble h3 {
+            margin: 16px 0 8px;
+            color: var(--text-main);
+        }
+        .msg-bubble p { margin-bottom: 12px; }
+        .msg-bubble ul, .msg-bubble ol { margin-left: 20px; margin-bottom: 12px; }
+        .msg-bubble li { margin-bottom: 4px; }
+        .msg-bubble code:not(pre code) {
+            background: #2b313a;
+            color: #ff7b72;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+            font-size: 13px;
+        }
+        .msg-bubble pre {
+            position: relative;
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px;
+            overflow-x: auto;
+            margin: 14px 0;
+        }
+        .msg-bubble pre code {
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+            font-size: 13.5px;
+            line-height: 1.5;
+            background: transparent !important;
+            padding: 0 !important;
+        }
+        .copy-code-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #21262d;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .copy-code-btn:hover {
+            color: var(--text-main);
+            background: #30363d;
+        }
+
+        /* Input Area */
+        #input-container {
+            padding: 16px 24px 20px;
+            background: var(--bg-sidebar);
+            border-top: 1px solid var(--border);
+        }
+        .input-box-wrapper {
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            transition: border-color 0.15s;
+        }
+        .input-box-wrapper:focus-within {
+            border-color: var(--accent);
+        }
+        textarea#prompt-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            padding: 14px 50px 14px 16px;
+            font-size: 15px;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+            font-family: inherit;
+            height: 56px;
+            max-height: 200px;
+        }
+        .btn-send {
+            position: absolute;
+            right: 10px;
+            bottom: 10px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: background 0.15s;
+        }
+        .btn-send:hover { background: var(--accent-hover); }
+        .btn-send:disabled {
+            background: var(--border);
+            color: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        .cursor-blink {
+            display: inline-block;
+            width: 7px;
+            height: 16px;
+            background: var(--accent);
+            vertical-align: middle;
+            animation: blink 0.8s infinite;
+            margin-left: 2px;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+        <div class="brand">
+            <span>⚡ Qwen 2.5 Coder</span>
+            <span class="brand-badge">14B GPU</span>
+        </div>
+
+        <button class="btn-new-chat" onclick="newChat()">
+            <span>➕</span> Новый диалог
+        </button>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Локальная Модель</div>
+            <div class="model-card">
+                <div class="model-name">
+                    <span class="status-dot" id="engine-status-dot"></span>
+                    <span id="active-model-title">qwen14b</span>
+                </div>
+                <div class="model-meta" id="model-meta-info">
+                    Quant: <b>Q3_K_M</b><br>
+                    Layers: <b>49/49 GPU (RTX 3070)</b><br>
+                    Context: <b>4096 tokens</b>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Параметры генерации</div>
+            <div class="params-group">
+                <div>
+                    <div class="param-row">
+                        <label>Температура:</label>
+                        <span id="temp-val">0.3</span>
+                    </div>
+                    <input type="range" class="param-slider" id="temp-slider" min="0.0" max="1.0" step="0.05" value="0.3" oninput="document.getElementById('temp-val').innerText = this.value">
+                </div>
+                <div>
+                    <div class="param-row">
+                        <label>Контекст (токенов):</label>
+                        <span id="ctx-val">4096</span>
+                    </div>
+                    <input type="range" class="param-slider" id="ctx-slider" min="2048" max="8192" step="1024" value="4096" oninput="document.getElementById('ctx-val').innerText = this.value">
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-footer">
+            <div>100% Offline · Без цензуры · Полный код</div>
+            <div>GitHub: <a href="https://github.com/tagiriskaliev18-hash/qwen14b-coder-dev" target="_blank">qwen14b-coder-dev</a></div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main">
+        <header>
+            <div class="header-left">
+                <div class="header-title">💻 Инженерная среда разработки</div>
+            </div>
+            <div>
+                <select class="model-select" id="model-select" onchange="onModelChange()">
+                    <option value="qwen14b">⚡ Qwen 2.5 Coder 14B (Q3_K_M · RTX 3070 GPU)</option>
+                    <option value="qwen2.5-coder:7b">🚀 Qwen 2.5 Coder 7B (Быстрый локальный)</option>
+                </select>
+            </div>
+        </header>
+
+        <div id="chat-history">
+            <div class="welcome-box" id="welcome-box">
+                <h2>Qwen 2.5 Coder 14B Ready</h2>
+                <p>Локальная инженерная нейросеть для написания чистого, продакшен-готового кода без сокращений, заглушек и цензуры. Запустите одну из быстрых команд или сформулируйте задачу:</p>
+                <div class="prompts-grid">
+                    <div class="prompt-card" onclick="usePrompt('Напиши полноценный REST API на FastAPI с JWT аутентификацией, SQLite базой через SQLAlchemy, Pydantic моделями и обработкой ошибок.')">
+                        <div class="p-title">🐍 Backend: FastAPI REST API</div>
+                        <div class="p-desc">Полный сервис с JWT, БД SQLAlchemy и валидацией</div>
+                    </div>
+                    <div class="prompt-card" onclick="usePrompt('Создай красивую браузерную игру на HTML5 Canvas (например, Tower Defense или Plants vs Zombies) в одном файле с полным стилем CSS и логикой JS.')">
+                        <div class="p-title">🎮 Frontend: Игра HTML5 Canvas</div>
+                        <div class="p-desc">Полноценная игра в одном самодостаточном файле</div>
+                    </div>
+                    <div class="prompt-card" onclick="usePrompt('Напиши надежный асинхронный парсер на Python (aiohttp, BeautifulSoup) с ротацией User-Agent, повторными попытками и экспортом данных в JSON.')">
+                        <div class="p-title">🕷️ Автоматизация: Async Scraper</div>
+                        <div class="p-desc">Парсер с обработкой ошибок и сохранением данных</div>
+                    </div>
+                    <div class="prompt-card" onclick="usePrompt('Реализуй алгоритм поиска пути A* (A-Star) на Python с визуализацией карты в консоли и тестами граничных условий.')">
+                        <div class="p-title">📐 Алгоритмы: A* Pathfinding</div>
+                        <div class="p-desc">Чистый алгоритмический код с тестами</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="input-container">
+            <div class="input-box-wrapper">
+                <textarea id="prompt-input" placeholder="Опишите задачу разработчику (Shift+Enter для новой строки, Enter для отправки)..." onkeydown="handleKeyDown(event)"></textarea>
+                <button class="btn-send" id="send-btn" onclick="sendMessage()" title="Отправить">
+                    ➤
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatHistory = document.getElementById('chat-history');
+        const promptInput = document.getElementById('prompt-input');
+        const sendBtn = document.getElementById('send-btn');
+        let conversation = [];
+        let isGenerating = false;
+
+        marked.setOptions({
+            highlight: function(code, lang) {
+                const language = highlight.getLanguage(lang) ? lang : 'plaintext';
+                return highlight.highlight(code, { language }).value;
+            },
+            breaks: true
+        });
+
+        function handleKeyDown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function usePrompt(text) {
+            promptInput.value = text;
+            sendMessage();
+        }
+
+        function newChat() {
+            conversation = [];
+            chatHistory.innerHTML = '';
+            const welcome = document.getElementById('welcome-box');
+            if (!welcome) {
+                location.reload();
+            }
+        }
+
+        function onModelChange() {
+            const val = document.getElementById('model-select').value;
+            document.getElementById('active-model-title').innerText = val;
+        }
+
+        async function sendMessage() {
+            const text = promptInput.value.trim();
+            if (!text || isGenerating) return;
+
+            const welcome = document.getElementById('welcome-box');
+            if (welcome) welcome.remove();
+
+            // Append user message
+            appendUserMessage(text);
+            promptInput.value = '';
+            promptInput.style.height = '56px';
+
+            conversation.push({ role: 'user', content: text });
+
+            // Prepare assistant message
+            const { bubble, cursor } = createAssistantMessage();
+            isGenerating = true;
+            sendBtn.disabled = true;
+
+            const model = document.getElementById('model-select').value;
+            const temperature = parseFloat(document.getElementById('temp-slider').value);
+            const num_ctx = parseInt(document.getElementById('ctx-slider').value);
+
+            let accumulatedText = "";
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: model,
+                        messages: conversation,
+                        options: {
+                            temperature: temperature,
+                            num_ctx: num_ctx
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let done = false;
+
+                while (!done) {
+                    const { value, done: rDone } = await reader.read();
+                    done = rDone;
+                    if (value) {
+                        const chunk = decoder.decode(value, { stream: true });
+                        const lines = chunk.split('\n');
+                        for (const line of lines) {
+                            if (!line.trim()) continue;
+                            try {
+                                const parsed = JSON.parse(line);
+                                if (parsed.message && parsed.message.content) {
+                                    accumulatedText += parsed.message.content;
+                                    renderAssistantMarkdown(bubble, accumulatedText);
+                                    chatHistory.scrollTop = chatHistory.scrollHeight;
+                                }
+                            } catch (e) {}
+                        }
+                    }
+                }
+
+                conversation.push({ role: 'assistant', content: accumulatedText });
+            } catch (err) {
+                accumulatedText += `\n\n⚠️ **Ошибка связи:** ${err.message}. Проверьте, запущен ли Ollama и модель \`${model}\`.`;
+                renderAssistantMarkdown(bubble, accumulatedText);
+            } finally {
+                cursor.remove();
+                addCodeCopyButtons(bubble);
+                isGenerating = false;
+                sendBtn.disabled = false;
+                promptInput.focus();
+            }
+        }
+
+        function appendUserMessage(text) {
+            const row = document.createElement('div');
+            row.className = 'message-row user';
+            const bubble = document.createElement('div');
+            bubble.className = 'msg-bubble';
+            bubble.innerText = text;
+            row.appendChild(bubble);
+            chatHistory.appendChild(row);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        function createAssistantMessage() {
+            const row = document.createElement('div');
+            row.className = 'message-row assistant';
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'avatar';
+            avatar.innerText = '⚡';
+
+            const bubble = document.createElement('div');
+            bubble.className = 'msg-bubble';
+
+            const cursor = document.createElement('span');
+            cursor.className = 'cursor-blink';
+
+            bubble.appendChild(cursor);
+            row.appendChild(avatar);
+            row.appendChild(bubble);
+            chatHistory.appendChild(row);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            return { bubble, cursor };
+        }
+
+        function renderAssistantMarkdown(container, text) {
+            const rawHtml = marked.parse(text);
+            container.innerHTML = rawHtml;
+            // Highlight code blocks
+            container.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
+        }
+
+        function addCodeCopyButtons(container) {
+            container.querySelectorAll('pre').forEach((pre) => {
+                if (pre.querySelector('.copy-code-btn')) return;
+                const btn = document.createElement('button');
+                btn.className = 'copy-code-btn';
+                btn.innerText = '📋 Копировать';
+                btn.onclick = () => {
+                    const code = pre.querySelector('code').innerText;
+                    navigator.clipboard.writeText(code);
+                    btn.innerText = '✅ Скопировано!';
+                    setTimeout(() => { btn.innerText = '📋 Копировать'; }, 2000);
+                };
+                pre.appendChild(btn);
+            });
+        }
+
+        // Auto-resize input textarea
+        promptInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+        });
+
+        // Initial check
+        fetch('/api/models')
+            .then(res => res.json())
+            .then(data => {
+                if (data.models && data.models.length > 0) {
+                    const select = document.getElementById('model-select');
+                    select.innerHTML = '';
+                    data.models.forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m.model;
+                        opt.innerText = m.name;
+                        select.appendChild(opt);
+                    });
+                }
+            })
+            .catch(() => {});
+    </script>
+</body>
+</html>
